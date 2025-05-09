@@ -1,106 +1,169 @@
-import { writable } from 'svelte/store';
-import type { Task } from '$lib/types/task';
+import { writable, derived } from 'svelte/store';
+import type { Task, NewTask, TaskStatus } from '$lib/types/task';
 
-// Create a writable store with initial empty array
-export const tasks = writable<Task[]>([]);
+// Create the main tasks store
+const tasksStore = writable<Task[]>([]);
 
-// Later this will be connected to the API
-// For now, we'll use these methods to manage tasks locally
+// Create the task store with methods
 export const taskStore = {
-  // Load tasks from API (placeholder for now)
-  loadTasks: async () => {
+  subscribe: tasksStore.subscribe,
+  
+  // Initialize the store with tasks from the API
+  init: async () => {
     try {
-      // This will be replaced with API call
-      const dummyTasks: Task[] = [
-        {
-          id: '1',
-          title: 'Create Board Component',
-          description: 'Implement the main Kanban board',
-          status: 'todo',
-          labels: ['frontend', 'ui'],
-          assignee: 'Jack',
-          estimatedCompletion: new Date(Date.now() + 86400000),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Implement API Routes',
-          description: 'Create endpoints for task CRUD operations',
-          status: 'doing',
-          labels: ['backend', 'api'],
-          assignee: 'Max',
-          estimatedCompletion: new Date(Date.now() + 172800000),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '3',
-          title: 'Project Setup',
-          description: 'Initialize SvelteKit project and configure Tailwind',
-          status: 'done',
-          labels: ['setup'],
-          assignee: 'Max',
-          completedAt: new Date(),
-          createdAt: new Date(Date.now() - 86400000),
-          updatedAt: new Date()
-        }
-      ];
-
-      tasks.set(dummyTasks);
-      return dummyTasks;
+      const response = await fetch('/api/tasks');
+      if (!response.ok) {
+        throw new Error('Failed to fetch tasks');
+      }
+      const tasks = await response.json();
+      tasksStore.set(tasks);
+      return tasks;
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      console.error('Error initializing task store:', error);
+      tasksStore.set([]);
       return [];
     }
   },
-
-  // Add task (placeholder)
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newTask: Task = {
-      ...task,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
-
-    tasks.update(currentTasks => [...currentTasks, newTask]);
-    return newTask;
-  },
-
-  // Update task (placeholder)
-  updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => {
-    let updatedTask: Task | undefined;
-
-    tasks.update(currentTasks => {
-      return currentTasks.map(task => {
-        if (task.id === id) {
-          // If moving to done, set completedAt
-          if (updates.status === 'done' && task.status !== 'done') {
-            updates.completedAt = new Date();
-          }
-
-          // If moving out of done, remove completedAt
-          if (updates.status && updates.status !== 'done' && task.status === 'done') {
-            updates.completedAt = undefined;
-          }
-
-          updatedTask = {
-            ...task,
-            ...updates,
-            updatedAt: new Date()
-          };
-          return updatedTask;
-        }
-        return task;
+  
+  // Add a new task
+  addTask: async (newTask: NewTask) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(newTask)
       });
-    });
 
-    return updatedTask;
+      if (!response.ok) {
+        throw new Error('Failed to create task');
+      }
+
+      const createdTask = await response.json();
+      
+      // Update the store with the new task
+      tasksStore.update(tasks => [...tasks, createdTask]);
+      
+      return createdTask;
+    } catch (error) {
+      console.error('Error adding task:', error);
+      throw error;
+    }
   },
+  
+  // Update an existing task
+  updateTask: async (taskId: string, updatedFields: Partial<Task>) => {
+    try {
+      // First update locally for optimistic UI
+      let updatedTask: Task | null = null;
+      
+      tasksStore.update(tasks => {
+        return tasks.map(task => {
+          if (task.id === taskId) {
+            // If moving to "done" status, add completedAt timestamp
+            if (updatedFields.status === 'done' && task.status !== 'done') {
+              updatedFields.completedAt = new Date();
+            }
+            // If moving from "done" status, remove completedAt timestamp
+            else if (updatedFields.status && updatedFields.status !== 'done' && task.status === 'done') {
+              updatedFields.completedAt = undefined;
+            }
+            
+            // Always update the updatedAt timestamp
+            updatedFields.updatedAt = new Date();
+            
+            // Create the updated task
+            updatedTask = { ...task, ...updatedFields };
+            return updatedTask;
+          }
+          return task;
+        });
+      });
+      
+      // Then update on the server
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify(updatedFields)
+      });
 
-  // Delete task (placeholder)
-  deleteTask: (id: string) => {
-    tasks.update(currentTasks => currentTasks.filter(task => task.id !== id));
+      if (!response.ok) {
+        throw new Error('Failed to update task');
+      }
+
+      const serverTask = await response.json();
+      
+      // Update again with server response (in case any fields were changed)
+      tasksStore.update(tasks => tasks.map(task => task.id === taskId ? serverTask : task));
+      
+      return serverTask;
+    } catch (error) {
+      console.error('Error updating task:', error);
+      throw error;
+    }
+  },
+  
+  // Delete a task
+  deleteTask: async (taskId: string) => {
+    try {
+      // First update locally for optimistic UI
+      tasksStore.update(tasks => tasks.filter(task => task.id !== taskId));
+      
+      // Then delete on the server
+      const response = await fetch(`/api/tasks/${taskId}`, {
+        method: 'DELETE'
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete task');
+      }
+      
+      return true;
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      throw error;
+    }
+  },
+  
+  // Update task status (specialized method for drag and drop)
+  updateTaskStatus: async (taskId: string, newStatus: TaskStatus) => {
+    return taskStore.updateTask(taskId, { status: newStatus });
   }
 };
+
+// Derived stores for each column
+export const todoTasks = derived(tasksStore, $tasks => 
+  $tasks
+    .filter(task => task.status === 'todo')
+    .sort((a, b) => {
+      // Sort by estimated completion date (closest first)
+      const aDate = a.estimatedCompletion ? new Date(a.estimatedCompletion).getTime() : Infinity;
+      const bDate = b.estimatedCompletion ? new Date(b.estimatedCompletion).getTime() : Infinity;
+      return aDate - bDate;
+    })
+);
+
+export const doingTasks = derived(tasksStore, $tasks => 
+  $tasks
+    .filter(task => task.status === 'doing')
+    .sort((a, b) => {
+      // Sort by estimated completion date (closest first)
+      const aDate = a.estimatedCompletion ? new Date(a.estimatedCompletion).getTime() : Infinity;
+      const bDate = b.estimatedCompletion ? new Date(b.estimatedCompletion).getTime() : Infinity;
+      return aDate - bDate;
+    })
+);
+
+export const doneTasks = derived(tasksStore, $tasks => 
+  $tasks
+    .filter(task => task.status === 'done')
+    .sort((a, b) => {
+      // Sort by completion date (most recent first)
+      const aDate = a.completedAt ? new Date(a.completedAt).getTime() : 0;
+      const bDate = b.completedAt ? new Date(b.completedAt).getTime() : 0;
+      return bDate - aDate;
+    })
+);
