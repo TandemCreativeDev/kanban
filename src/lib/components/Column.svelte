@@ -1,23 +1,17 @@
 <script lang="ts">
   import type { Task, TaskStatus } from '$lib/types/task';
-  import type { DndEvent } from 'svelte-dnd-action';
+  import type { DndEvent, Item } from 'svelte-dnd-action';
   import TaskCard from './TaskCard.svelte';
   import { dndzone } from 'svelte-dnd-action';
   import { taskStore } from '$lib/stores/taskStore';
 
-  // Define the DND item type that will be used for typing
-  interface DndItem {
-    id: string;
-    task: Task;
-  }
-
   // Use props() rune instead of export let
   let { id, title, tasks, onEditTask, onAddTask } = $props<{
-    id: TaskStatus,
-    title: string,
-    tasks: Task[],
-    onEditTask?: (task: Task) => void,
-    onAddTask?: (status: TaskStatus) => void
+    id: TaskStatus;
+    title: string;
+    tasks: Task[];
+    onEditTask?: (task: Task) => void;
+    onAddTask?: (status: TaskStatus) => void;
   }>();
 
   // Use $state for items so we can update them during drag operations
@@ -32,18 +26,18 @@
   });
 
   // Handle items being added to this column (during drag)
-  function handleDndConsiderItems(e: CustomEvent<DndEvent<any>>) {
+  function handleDndConsiderItems(e: CustomEvent<DndEvent<Item>>) {
     // Update UI during drag operation
-    items = e.detail.items as any[];
+    items = e.detail.items;
   }
 
   // Handle item being dropped into this column (after drop)
-  function handleDndFinalizeItems(e: CustomEvent<DndEvent<any>>) {
+  function handleDndFinalizeItems(e: CustomEvent<DndEvent<Item>>) {
     // This finalizes the drag operation
-    items = e.detail.items as any[];
+    items = e.detail.items;
 
     // Process status changes for tasks moved to this column
-    items.forEach((item: any) => {
+    items.forEach((item: Item) => {
       const task = item.task;
       if (task && task.status !== id) {
         // Update task status if it's been moved to a different column
@@ -98,10 +92,12 @@
     onfinalize={handleDndFinalizeItems}
   >
     {#each items as item (item.id)}
-      <TaskCard 
-        task={item.task} 
+      <TaskCard
+        task={item.task}
         onEdit={handleEditTask}
-        onDelete={() => {/* Task deletion handled by the TaskCard directly */}}
+        onDelete={() => {
+          /* Task deletion handled by the TaskCard directly */
+        }}
       />
     {/each}
   </div>
