@@ -9,37 +9,38 @@
       "backend"
     ],
     "assignee": "maxitect",
-    "estimatedCompletion": "2023-06-30T00:00:00.000Z",
+    "estimatedCompletion": "2025-06-30T00:00:00.000Z",
     "createdAt": "2023-05-01T09:00:00.000Z",
-    "updatedAt": "2023-05-01T09:00:00.000Z"
+    "updatedAt": "2025-05-09T14:49:11.649Z"
   },
   {
     "id": "7f8d3a2b-5c6e-4b1d-9a8f-2e1c7d6b5a4d",
     "title": "Design dashboard layout",
     "description": "Create wireframes and mockups for the main dashboard",
-    "status": "todo",
+    "status": "doing",
     "labels": [
       "design",
       "frontend"
     ],
     "assignee": "jackdesigner",
-    "estimatedCompletion": "2023-06-15T00:00:00.000Z",
+    "estimatedCompletion": "2025-06-01T00:00:00.000Z",
     "createdAt": "2023-05-02T10:15:00.000Z",
-    "updatedAt": "2023-05-02T10:15:00.000Z"
+    "updatedAt": "2025-05-09T14:47:43.641Z"
   },
   {
     "id": "2a1b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p",
     "title": "Implement drag-and-drop functionality",
     "description": "Add the ability to drag tasks between columns",
-    "status": "doing",
+    "status": "done",
     "labels": [
       "feature",
       "frontend"
     ],
     "assignee": "jackdesigner",
-    "estimatedCompletion": "2023-06-10T00:00:00.000Z",
+    "estimatedCompletion": "2025-06-10T00:00:00.000Z",
     "createdAt": "2023-05-03T11:30:00.000Z",
-    "updatedAt": "2023-05-05T14:20:00.000Z"
+    "updatedAt": "2025-05-09T14:49:28.015Z",
+    "completedAt": "2025-05-09T14:49:28.015Z"
   },
   {
     "id": "9p8o7n6m-5l4k-3j2i-1h0g-f9e8d7c6b5a4",
@@ -51,24 +52,24 @@
       "backend"
     ],
     "assignee": "maxitect",
-    "estimatedCompletion": "2023-06-05T00:00:00.000Z",
+    "estimatedCompletion": "2025-06-02T00:00:00.000Z",
     "createdAt": "2023-05-04T13:45:00.000Z",
-    "updatedAt": "2023-05-06T16:30:00.000Z"
+    "updatedAt": "2025-05-09T14:49:19.627Z"
   },
   {
     "id": "5a4b3c2d-1e9f-8g7h-6i5j-4k3l2m1n0o9p",
     "title": "Fix responsive layout issues",
     "description": "Address UI problems on mobile devices",
-    "status": "done",
+    "status": "todo",
     "labels": [
       "bug",
       "frontend"
     ],
     "assignee": "jackdesigner",
-    "estimatedCompletion": "2023-05-25T00:00:00.000Z",
+    "estimatedCompletion": "2025-05-25T00:00:00.000Z",
     "completedAt": "2023-05-20T15:30:00.000Z",
     "createdAt": "2023-05-15T09:20:00.000Z",
-    "updatedAt": "2023-05-20T15:30:00.000Z"
+    "updatedAt": "2025-05-09T14:47:27.763Z"
   },
   {
     "id": "1z2y3x4w-5v6u-7t8s-9r0q-p1o2n3m4l5k",
@@ -80,9 +81,9 @@
       "infrastructure"
     ],
     "assignee": "maxitect",
-    "estimatedCompletion": "2023-05-18T00:00:00.000Z",
-    "completedAt": "2023-05-17T14:00:00.000Z",
+    "estimatedCompletion": "2025-05-18T00:00:00.000Z",
+    "completedAt": "2025-05-09T14:46:21.545Z",
     "createdAt": "2023-05-10T11:00:00.000Z",
-    "updatedAt": "2023-05-17T14:00:00.000Z"
+    "updatedAt": "2025-05-09T14:46:21.545Z"
   }
 ]
