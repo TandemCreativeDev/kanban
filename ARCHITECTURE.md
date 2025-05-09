@@ -34,8 +34,11 @@ kanban/
 │   │   │   └── task.ts              # TypeScript interfaces for task data
 │   │   └── utils/
 │   │       ├── taskSort.ts          # Utility for sorting tasks by date
-│   │       ├── taskFileUtils.ts     # Helper functions for api routes
-│   │       └── dateFormat.ts        # Date formatting utilities
+│   │       ├── taskFileUtils.ts     # Helper functions for API routes
+│   │       ├── dateFormat.ts        # Date formatting utilities
+│   │       ├── taskApiService.ts    # API service for task operations
+│   │       ├── taskTransform.ts     # Utilities for task transformations
+│   │       └── storeFactory.ts      # Factory functions for creating stores
 │   ├── routes/
 │   │   ├── +page.svelte            # Main page with Kanban board
 │   │   ├── +page.ts                # Data loading for main page
@@ -97,6 +100,48 @@ interface Task {
   // More tasks...
 ]
 ```
+
+## Utility Architecture
+
+### API Service (taskApiService.ts)
+
+- Centralizes all HTTP requests to API endpoints
+- Provides methods for CRUD operations on tasks
+- Handles API-specific error responses
+- Abstracts the details of API interactions from the store
+
+### Task Transformation (taskTransform.ts)
+
+- Manages task object transformations
+- Handles special logic for status transitions
+- Ensures proper timestamp management (completion date, update date)
+- Provides methods for creating and updating task objects
+
+### Store Factory (storeFactory.ts)
+
+- Creates and configures Svelte stores
+- Provides factories for derived stores (filtered lists, counts)
+- Ensures consistent store creation patterns
+- Separates store creation logic from store usage
+
+### Task Sorting (taskSort.ts)
+
+- Implements sorting algorithms for different task statuses
+- Provides consistent sorting for all task displays
+- Handles the different sorting requirements per column
+
+### Date Formatting (dateFormat.ts)
+
+- Utility functions for formatting dates
+- Provides consistent date display throughout the application
+- Handles detection of past-due dates
+
+### File Utilities (taskFileUtils.ts)
+
+- Manages reading and writing tasks to JSON files
+- Handles JSON serialization/deserialization
+- Provides error handling for file operations
+- Used by API routes for data persistence
 
 ## Component Architecture
 
@@ -165,19 +210,25 @@ interface Task {
 
 ## State Management
 
-- Use SvelteKit's built-in stores for managing application state
-- Task data loaded on initial page load
-- Local updates for optimistic UI changes
-- Server sync for persistence
+- Separation of concerns with dedicated utility files
+- Main store (taskStore.ts) coordinates state updates
+- Derived stores for reactive UI updates (todoTasks, doingTasks, doneTasks)
+- Additional stores for tracking loading and error states
+- Counter stores for task statistics (todoCount, doingCount, doneCount)
+- Optimistic UI updates with server synchronization
+- Error recovery by reverting to previous state on API failures
 
 ## Error Handling
 
 - Toast notifications for user-facing errors
 - Console logging for development debugging
 - Input validation to prevent bad data
+- Dedicated error store for tracking error states
+- Proper error recovery for optimistic UI updates
 
 ## Performance Considerations
 
 - Minimizing re-renders using Svelte's reactivity
 - Efficient sorting and filtering
 - Local data storage for quick access and modifications
+- Derived stores for pre-computed views
