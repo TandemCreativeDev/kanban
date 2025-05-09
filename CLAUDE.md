@@ -8,7 +8,7 @@ This repository contains a Kanban board application built with SvelteKit. The ap
 
 ## Tech Stack
 
-- **Frontend Framework**: SvelteKit
+- **Frontend Framework**: SvelteKit with Svelte 5 (Runes mode)
 - **Styling**: Tailwind CSS
 - **Language**: TypeScript
 - **Drag-and-Drop**: svelte-dnd-action
@@ -93,8 +93,9 @@ interface Task {
 <!-- Example component structure -->
 <script lang="ts">
   // Imports
-  // Props
-  // Variables and state
+  // Props using $props() rune
+  // Reactive state using $state() and $derived 
+  // Effects using $effect()
   // Methods
 </script>
 
@@ -104,6 +105,41 @@ interface Task {
   /* Component-specific styles (if any) */
 </style>
 ```
+
+### Svelte 5 Runes
+
+The project uses Svelte 5's runes mode. Follow these guidelines for reactivity and events:
+
+1. **Props**:
+   - Use `$props()` rune for component props
+   - Define type using TypeScript generic: `let { task } = $props<{ task: Task }>();`
+   - Use callback props pattern instead of event dispatchers: `let { onEdit } = $props<{ onEdit?: (task: Task) => void }>();`
+
+2. **Reactive State**:
+   - Use `$state()` for mutable variables: `let count = $state(0);`
+   - Use `$derived` for computed values: `let doubled = $derived(count * 2);`
+   - Use `$effect()` for side effects: `$effect(() => { console.log(count); });`
+   - Type state variables directly in the $state call: `let formData = $state<Partial<Task>>({});`
+
+3. **Event Handling**:
+   - Use attributes instead of directives: `onclick={handleClick}` not `on:click={handleClick}`
+   - For custom events, use the Svelte 5 pattern: `oncustomevent={handler}` not `on:customevent={handler}`
+   - Inline function handlers should prevent event bubbling when needed: `onclick={e => e.stopPropagation()}`
+   - For events on conditionally rendered elements, ensure proper cleanup in $effect blocks
+
+4. **Component Directives**:
+   - For custom directives like `svelte-dnd-action`, use the attribute syntax: `use:dndzone={{ items }}`
+   - Handle custom directive events with attributes: `onconsider={handleConsider}` not `on:consider={handleConsider}`
+   
+5. **TypeScript Integration**:
+   - When using directives with events, handle type issues with specific types or `any` as needed
+   - For custom directives like `dndzone`, sometimes a type assertion is necessary: `(items as any[])`
+   - Don't use `undefined` or `null` as default values with $state() - use appropriate initial values
+
+6. **Common Pitfalls**:
+   - Always mark mutable variables with $state() to avoid the warning: "variable is updated, but is not declared with $state()"
+   - Don't mutate $state objects directly, create new references (e.g., for arrays use [...array, newItem])
+   - Replace reactive statements ($: x = y * 2) with $derived or $effect
 
 ### CSS/Styling
 
@@ -151,6 +187,13 @@ When reviewing code:
 3. Only then proceed with manual code review
 4. Pay special attention to type compatibility issues
 5. Verify interface implementations match their definitions
+6. For Svelte 5 code, verify:
+   - All mutable variables use `$state()`
+   - Props are properly typed with `$props<T>()`
+   - Event handlers use attribute syntax not directive syntax
+   - Computed values use `$derived` not reactive statements
+   - Side effects use `$effect()` not reactive statements
+   - No direct mutation of state objects occurs
 
 ## Application Architecture
 
