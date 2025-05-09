@@ -1,106 +1,172 @@
-import { writable } from 'svelte/store';
-import type { Task } from '$lib/types/task';
+import { get } from 'svelte/store';
+import type { Task, NewTask, TaskStatus } from '$lib/types/task';
+import { taskApiService } from '$lib/utils/taskApiService';
+import { taskTransform } from '$lib/utils/taskTransform';
+import { storeFactory } from '$lib/utils/storeFactory';
 
-// Create a writable store with initial empty array
-export const tasks = writable<Task[]>([]);
+// Create the main stores
+const tasksStore = storeFactory.createTasksStore();
+export const isLoading = storeFactory.createLoadingStore();
+export const taskError = storeFactory.createErrorStore();
 
-// Later this will be connected to the API
-// For now, we'll use these methods to manage tasks locally
+// Create derived stores for columns
+export const todoTasks = storeFactory.createColumnStore(tasksStore, 'todo');
+export const doingTasks = storeFactory.createColumnStore(tasksStore, 'doing');
+export const doneTasks = storeFactory.createColumnStore(tasksStore, 'done');
+
+// Create derived stores for counts
+export const todoCount = storeFactory.createCountStore(tasksStore, 'todo');
+export const doingCount = storeFactory.createCountStore(tasksStore, 'doing');
+export const doneCount = storeFactory.createCountStore(tasksStore, 'done');
+
+// Create the task store with methods
 export const taskStore = {
-  // Load tasks from API (placeholder for now)
-  loadTasks: async () => {
-    try {
-      // This will be replaced with API call
-      const dummyTasks: Task[] = [
-        {
-          id: '1',
-          title: 'Create Board Component',
-          description: 'Implement the main Kanban board',
-          status: 'todo',
-          labels: ['frontend', 'ui'],
-          assignee: 'Jack',
-          estimatedCompletion: new Date(Date.now() + 86400000),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '2',
-          title: 'Implement API Routes',
-          description: 'Create endpoints for task CRUD operations',
-          status: 'doing',
-          labels: ['backend', 'api'],
-          assignee: 'Max',
-          estimatedCompletion: new Date(Date.now() + 172800000),
-          createdAt: new Date(),
-          updatedAt: new Date()
-        },
-        {
-          id: '3',
-          title: 'Project Setup',
-          description: 'Initialize SvelteKit project and configure Tailwind',
-          status: 'done',
-          labels: ['setup'],
-          assignee: 'Max',
-          completedAt: new Date(),
-          createdAt: new Date(Date.now() - 86400000),
-          updatedAt: new Date()
-        }
-      ];
+  // Expose subscribe method from the underlying store
+  subscribe: tasksStore.subscribe,
 
-      tasks.set(dummyTasks);
-      return dummyTasks;
+  // Initialize the store with tasks from the API
+  init: async () => {
+    try {
+      isLoading.set(true);
+      taskError.set(null);
+
+      const tasks = await taskApiService.fetchAllTasks();
+
+      // Ensure date fields are properly converted to Date objects
+      const processedTasks = tasks.map(task => ({
+        ...task,
+        estimatedCompletion: task.estimatedCompletion
+          ? new Date(task.estimatedCompletion)
+          : undefined,
+        completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
+        createdAt: task.createdAt ? new Date(task.createdAt) : new Date(),
+        updatedAt: task.updatedAt ? new Date(task.updatedAt) : new Date()
+      }));
+
+      tasksStore.set(processedTasks);
+      return tasks;
     } catch (error) {
-      console.error('Failed to load tasks:', error);
+      console.error('Error initializing task store:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
+      tasksStore.set([]);
       return [];
+    } finally {
+      isLoading.set(false);
     }
   },
 
-  // Add task (placeholder)
-  addTask: (task: Omit<Task, 'id' | 'createdAt' | 'updatedAt'>) => {
-    const newTask: Task = {
-      ...task,
-      id: crypto.randomUUID(),
-      createdAt: new Date(),
-      updatedAt: new Date()
-    };
+  // Add a new task
+  addTask: async (newTask: NewTask) => {
+    try {
+      isLoading.set(true);
+      taskError.set(null);
 
-    tasks.update(currentTasks => [...currentTasks, newTask]);
-    return newTask;
+      const createdTask = await taskApiService.createTask(newTask);
+
+      // Update the store with the new task
+      tasksStore.update(tasks => [...tasks, createdTask]);
+
+      return createdTask;
+    } catch (error) {
+      console.error('Error adding task:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    } finally {
+      isLoading.set(false);
+    }
   },
 
-  // Update task (placeholder)
-  updateTask: (id: string, updates: Partial<Omit<Task, 'id' | 'createdAt'>>) => {
-    let updatedTask: Task | undefined;
+  // Update an existing task
+  updateTask: async (taskId: string, updatedFields: Partial<Task>) => {
+    try {
+      taskError.set(null);
 
-    tasks.update(currentTasks => {
-      return currentTasks.map(task => {
-        if (task.id === id) {
-          // If moving to done, set completedAt
-          if (updates.status === 'done' && task.status !== 'done') {
-            updates.completedAt = new Date();
+      // Get the current task before updating
+      const currentTasks = get(tasksStore);
+      const taskToUpdate = currentTasks.find(task => task.id === taskId);
+
+      if (!taskToUpdate) {
+        throw new Error(`Task with ID ${taskId} not found`);
+      }
+
+      // Prepare updates with proper transformations
+      const preparedUpdates = taskTransform.prepareTaskUpdate(taskToUpdate, updatedFields);
+
+      // Apply optimistic update
+      tasksStore.update(tasks => {
+        return tasks.map(task => {
+          if (task.id === taskId) {
+            return taskTransform.applyUpdates(task, preparedUpdates);
           }
-
-          // If moving out of done, remove completedAt
-          if (updates.status && updates.status !== 'done' && task.status === 'done') {
-            updates.completedAt = undefined;
-          }
-
-          updatedTask = {
-            ...task,
-            ...updates,
-            updatedAt: new Date()
-          };
-          return updatedTask;
-        }
-        return task;
+          return task;
+        });
       });
-    });
 
-    return updatedTask;
+      try {
+        // Update on the server
+        const serverTask = await taskApiService.updateTask(taskId, preparedUpdates);
+
+        // Update again with server response
+        tasksStore.update(tasks => tasks.map(task => (task.id === taskId ? serverTask : task)));
+
+        return serverTask;
+      } catch (error) {
+        // Revert to original state in case of error
+        tasksStore.update(tasks => tasks.map(task => (task.id === taskId ? taskToUpdate : task)));
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
   },
 
-  // Delete task (placeholder)
-  deleteTask: (id: string) => {
-    tasks.update(currentTasks => currentTasks.filter(task => task.id !== id));
+  // Delete a task
+  deleteTask: async (taskId: string) => {
+    try {
+      taskError.set(null);
+
+      // Get the current task before deleting
+      const currentTasks = get(tasksStore);
+      const taskToDelete = currentTasks.find(task => task.id === taskId);
+
+      if (!taskToDelete) {
+        throw new Error(`Task with ID ${taskId} not found`);
+      }
+
+      // First update locally for optimistic UI
+      tasksStore.update(tasks => tasks.filter(task => task.id !== taskId));
+
+      try {
+        // Delete on the server
+        await taskApiService.deleteTask(taskId);
+        return true;
+      } catch (error) {
+        // Revert deletion if server request fails
+        tasksStore.update(tasks => [...tasks, taskToDelete]);
+        throw error;
+      }
+    } catch (error) {
+      console.error('Error deleting task:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
+      throw error;
+    }
+  },
+
+  // Update task status (specialized method for drag and drop)
+  updateTaskStatus: async (taskId: string, newStatus: TaskStatus) => {
+    return taskStore.updateTask(taskId, { status: newStatus });
+  },
+
+  // Get task by ID (synchronous helper method)
+  getTaskById: (taskId: string) => {
+    const tasks = get(tasksStore);
+    return tasks.find(task => task.id === taskId);
+  },
+
+  // Clear all errors
+  clearError: () => {
+    taskError.set(null);
   }
 };

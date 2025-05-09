@@ -1,52 +1,45 @@
 <script lang="ts">
-  import type { Task } from '$lib/types/task';
+  import type { Task, TaskStatus } from '$lib/types/task';
+  import type { DndEvent, Item } from 'svelte-dnd-action';
   import TaskCard from './TaskCard.svelte';
   import { dndzone } from 'svelte-dnd-action';
-  import { createEventDispatcher } from 'svelte';
   import { taskStore } from '$lib/stores/taskStore';
 
-  export let id: 'todo' | 'doing' | 'done';
-  export let title: string;
-  export let tasks: Task[];
-
-  const dispatch = createEventDispatcher<{
-    'edit-task': Task;
-    'add-task': { status: 'todo' | 'doing' | 'done' };
+  // Use props() rune instead of export let
+  let { id, title, tasks, onEditTask, onAddTask } = $props<{
+    id: TaskStatus;
+    title: string;
+    tasks: Task[];
+    onEditTask?: (task: Task) => void;
+    onAddTask?: (status: TaskStatus) => void;
   }>();
 
-  // Define the DND item type
-  interface DndItem {
-    id: string;
-    task: Task;
-  }
+  // Use $state for items so we can update them during drag operations
+  let items = $state(tasks.map((task: Task) => ({ id: task.id, task })));
 
-  // Transform tasks into items for dnd
-  $: items = tasks.map(task => ({ id: task.id, task }));
+  // Column task count using $derived
+  let taskCount = $derived(tasks.length);
 
-  // Column task count
-  $: taskCount = tasks.length;
+  // Update items when tasks change
+  $effect(() => {
+    items = tasks.map((task: Task) => ({ id: task.id, task }));
+  });
 
   // Handle items being added to this column (during drag)
-  function handleDndConsiderItems(e: CustomEvent<{ items: DndItem[] }>) {
-    // This needs to update the UI during drag operation
-    // We need to use a mutable local variable that won't be detected as a reactive reassignment
-    const dndItems = e.detail.items;
-    // @ts-ignore - Deliberate reassignment for DND library to work
-    items = dndItems;
+  function handleDndConsiderItems(e: CustomEvent<DndEvent<Item>>) {
+    // Update UI during drag operation
+    items = e.detail.items;
   }
 
   // Handle item being dropped into this column (after drop)
-  function handleDndFinalizeItems(e: CustomEvent<{ items: DndItem[] }>) {
+  function handleDndFinalizeItems(e: CustomEvent<DndEvent<Item>>) {
     // This finalizes the drag operation
-    // We need to use a mutable local variable that won't be detected as a reactive reassignment
-    const dndItems = e.detail.items;
-    // @ts-ignore - Deliberate reassignment for DND library to work
-    items = dndItems;
+    items = e.detail.items;
 
     // Process status changes for tasks moved to this column
-    dndItems.forEach(item => {
+    items.forEach((item: Item) => {
       const task = item.task;
-      if (task.status !== id) {
+      if (task && task.status !== id) {
         // Update task status if it's been moved to a different column
         taskStore.updateTask(task.id, { status: id });
       }
@@ -55,12 +48,12 @@
 
   // Add a new task to this column
   function addTask() {
-    dispatch('add-task', { status: id });
+    if (onAddTask) onAddTask(id);
   }
 
   // Edit task handler
   function handleEditTask(task: Task) {
-    dispatch('edit-task', task);
+    if (onEditTask) onEditTask(task);
   }
 </script>
 
@@ -74,7 +67,7 @@
         </span>
       </div>
       <button
-        on:click={addTask}
+        onclick={addTask}
         class="text-gray-500 hover:text-blue-500 p-1 rounded-full hover:bg-gray-100 transition-colors"
         title="Add task to {title}"
         aria-label="Add task to {title}"
@@ -95,11 +88,17 @@
     class="p-2 flex-1 overflow-y-auto"
     data-column-id={id}
     use:dndzone={{ items, flipDurationMs: 300, type: 'tasks' }}
-    on:consider={handleDndConsiderItems}
-    on:finalize={handleDndFinalizeItems}
+    onconsider={handleDndConsiderItems}
+    onfinalize={handleDndFinalizeItems}
   >
     {#each items as item (item.id)}
-      <TaskCard task={item.task} on:edit={() => handleEditTask(item.task)} />
+      <TaskCard
+        task={item.task}
+        onEdit={handleEditTask}
+        onDelete={() => {
+          /* Task deletion handled by the TaskCard directly */
+        }}
+      />
     {/each}
   </div>
 </div>

@@ -1,27 +1,21 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import { tasks, taskStore } from '$lib/stores/taskStore';
-  import { sortTasks } from '$lib/utils/taskSort';
-  import type { Task } from '$lib/types/task';
+  import { taskStore, todoTasks, doingTasks, doneTasks } from '$lib/stores/taskStore';
+  import type { Task, TaskStatus } from '$lib/types/task';
   import Column from './Column.svelte';
   import TaskModal from './TaskModal.svelte';
 
-  // Using objects for quick access to column info
-  const columns = [
-    { id: 'todo' as const, title: 'To Do' },
-    { id: 'doing' as const, title: 'Doing' },
-    { id: 'done' as const, title: 'Done' }
-  ];
+  // Using $derived for reactive column data
+  let columns = $derived([
+    { id: 'todo' as const, title: 'To Do', tasks: $todoTasks },
+    { id: 'doing' as const, title: 'Doing', tasks: $doingTasks },
+    { id: 'done' as const, title: 'Done', tasks: $doneTasks }
+  ]);
 
-  // Task sorting
-  function getTasksForColumn(status: 'todo' | 'doing' | 'done'): Task[] {
-    return sortTasks($tasks, status);
-  }
-
-  // Modal state
-  let isModalOpen = false;
-  let currentTask: Task | null = null;
-  let initialStatus: 'todo' | 'doing' | 'done' = 'todo';
+  // Modal state with $state for reactivity
+  let isModalOpen = $state(false);
+  let currentTask = $state<Task | null>(null);
+  let initialStatus = $state<TaskStatus>('todo');
 
   // Open modal to create a new task
   function openCreateTaskModal() {
@@ -41,16 +35,22 @@
     isModalOpen = false;
   }
 
-  // Handle task save
-  function handleTaskSave(event: CustomEvent<Task>) {
-    const savedTask = event.detail;
-    console.log('Task saved:', savedTask);
-    // Additional logic if needed after save
+  // Handle column add task
+  function handleAddTask(status: TaskStatus) {
+    currentTask = null;
+    initialStatus = status;
+    isModalOpen = true;
   }
 
   // Load tasks on component mount
   onMount(async () => {
-    await taskStore.loadTasks();
+    try {
+      const tasks = await taskStore.init();
+      // Force a refresh of the reactive variables
+      isModalOpen = false;
+    } catch (error) {
+      console.error('Error loading tasks:', error);
+    }
   });
 </script>
 
@@ -58,7 +58,7 @@
   <header class="mb-6 flex justify-between items-center">
     <h1 class="text-3xl font-bold text-gray-800">Kanban Board</h1>
     <button
-      on:click={openCreateTaskModal}
+      onclick={openCreateTaskModal}
       class="bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-md flex items-center gap-2 transition-colors"
     >
       <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -73,23 +73,17 @@
       <Column
         id={column.id}
         title={column.title}
-        tasks={getTasksForColumn(column.id)}
-        on:edit-task={e => openEditTaskModal(e.detail)}
-        on:add-task={e => {
-          currentTask = null;
-          // Set the initial status based on which column triggered the add task
-          initialStatus = e.detail.status;
-          isModalOpen = true;
-        }}
+        tasks={column.tasks}
+        onEditTask={openEditTaskModal}
+        onAddTask={handleAddTask}
       />
     {/each}
   </div>
 
   <TaskModal
-    isOpen={isModalOpen}
+    isOpen={isModalOpen === true}
     task={currentTask}
-    initialStatus={initialStatus}
-    on:close={handleModalClose}
-    on:save={handleTaskSave}
+    {initialStatus}
+    onClose={handleModalClose}
   />
 </div>
