@@ -1,68 +1,64 @@
 <script lang="ts">
-  import { createEventDispatcher } from 'svelte';
   import type { Task, TaskStatus, NewTask } from '$lib/types/task';
   import { taskStore } from '$lib/stores/taskStore';
 
-  // Props
-  export let task: Task | null = null;
-  export let isOpen = false;
-  export let initialStatus: TaskStatus = 'todo';
+  // All props using $props() rune
+  let { task, isOpen, initialStatus, onClose } = $props<{
+    task: Task | null;
+    isOpen: boolean;
+    initialStatus: TaskStatus;
+    onClose?: () => void;
+  }>();
 
   // Whether we're editing an existing task or creating a new one
-  $: isEditing = !!task;
-  $: modalTitle = isEditing ? 'Edit Task' : 'Create New Task';
+  let isEditing = $derived(!!task);
+  let modalTitle = $derived(isEditing ? 'Edit Task' : 'Create New Task');
 
   // Task form data
-  let formData: Partial<Task> = {
+  let formData = $state<Partial<Task>>({
     title: '',
     description: '',
     status: 'todo' as TaskStatus,
     labels: [],
     assignee: '',
     estimatedCompletion: undefined
-  };
+  });
 
   // Label input handling
-  let labelInput = '';
+  let labelInput = $state('');
 
   // Form validation
-  let errors: Record<string, string> = {};
-  let submitting = false;
-
-  // Event dispatcher
-  const dispatch = createEventDispatcher<{
-    close: void;
-    save: Task;
-  }>();
+  let errors = $state<Record<string, string>>({});
+  let submitting = $state(false);
 
   // Initialize form when modal opens or task changes
-  $: if (isOpen) {
-    if (isEditing && task) {
-      formData = {
-        title: task.title,
-        description: task.description || '',
-        status: task.status,
-        labels: [...(task.labels || [])],
-        assignee: task.assignee || '',
-        estimatedCompletion: task.estimatedCompletion
-          ? new Date(task.estimatedCompletion)
-          : undefined
-      };
-    } else {
-      // Reset form for new task - use the initialStatus from props
-      formData = {
-        title: '',
-        description: '',
-        status: initialStatus,
-        labels: [],
-        assignee: '',
-        estimatedCompletion: undefined
-      };
+  $effect(() => {
+    if (isOpen) {
+      if (isEditing && task) {
+        formData = {
+          title: task.title,
+          description: task.description || '',
+          status: task.status,
+          labels: [...(task.labels || [])],
+          assignee: task.assignee || '',
+          estimatedCompletion: task.estimatedCompletion
+        };
+      } else {
+        // Reset form for new task - use the initialStatus from props
+        formData = {
+          title: '',
+          description: '',
+          status: initialStatus,
+          labels: [],
+          assignee: '',
+          estimatedCompletion: undefined
+        };
+      }
+      // Clear errors
+      errors = {};
+      submitting = false;
     }
-    // Clear errors
-    errors = {};
-    submitting = false;
-  }
+  });
 
   // Add a label
   function addLabel() {
@@ -122,7 +118,7 @@
     }
 
     try {
-      let savedTask: Task | undefined;
+      let savedTask: Task;
 
       if (isEditing && task) {
         // Update existing task
@@ -135,27 +131,21 @@
           estimatedCompletion: formData.estimatedCompletion
         };
 
-        savedTask = taskStore.updateTask(task.id, updates);
+        savedTask = await taskStore.updateTask(task.id, updates);
       } else {
         // Create new task - ensure required fields are always defined
         const newTask: NewTask = {
           title: formData.title || '', // Required field
           description: formData.description || '',
           status: formData.status || 'todo', // Required field
-          labels: formData.labels || [],
-          assignee: formData.assignee || undefined,
-          estimatedCompletion: formData.estimatedCompletion || undefined
+          labels: formData.labels,
+          assignee: formData.assignee,
+          estimatedCompletion: formData.estimatedCompletion
         };
 
-        savedTask = taskStore.addTask(newTask);
+        savedTask = await taskStore.addTask(newTask);
       }
-
-      if (savedTask) {
-        dispatch('save', savedTask);
-        close();
-      } else {
-        errors.form = 'Failed to save task. Task could not be created or updated.';
-      }
+      close();
     } catch (error) {
       console.error('Error saving task:', error);
       errors.form = 'Failed to save task. Please try again.';
@@ -166,16 +156,17 @@
 
   // Close the modal
   function close() {
-    dispatch('close');
+    if (onClose) onClose();
   }
 </script>
 
-{#if isOpen}
+{#if isOpen === true}
+  <!-- Modal is open -->
   <div class="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
     <div
       class="bg-white rounded-lg shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto"
-      on:click|stopPropagation
-      on:keydown|stopPropagation={e => e.key === 'Escape' && close()}
+      onclick={e => e.stopPropagation()}
+      onkeydown={e => e.key === 'Escape' && close()}
       role="dialog"
       aria-labelledby="modal-title"
       tabindex="-1"
@@ -183,7 +174,7 @@
       <!-- Header -->
       <div class="flex justify-between items-center px-6 py-4 border-b">
         <h2 id="modal-title" class="text-xl font-semibold text-gray-800">{modalTitle}</h2>
-        <button class="text-gray-500 hover:text-gray-700" on:click={close} aria-label="Close">
+        <button class="text-gray-500 hover:text-gray-700" onclick={close} aria-label="Close">
           <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path
               stroke-linecap="round"
@@ -196,7 +187,13 @@
       </div>
 
       <!-- Form -->
-      <form on:submit|preventDefault={handleSubmit} class="px-6 py-4">
+      <form
+        onsubmit={e => {
+          e.preventDefault();
+          handleSubmit();
+        }}
+        class="px-6 py-4"
+      >
         <!-- Title -->
         <div class="mb-4">
           <label for="title" class="block text-sm font-medium text-gray-700 mb-1">Title *</label>
@@ -270,8 +267,10 @@
             id="estimatedCompletion"
             value={formData.estimatedCompletion instanceof Date
               ? formData.estimatedCompletion.toISOString().split('T')[0]
-              : ''}
-            on:change={handleDateChange}
+              : formData.estimatedCompletion
+                ? new Date(formData.estimatedCompletion).toISOString().split('T')[0]
+                : ''}
+            onchange={handleDateChange}
             class="w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
           />
         </div>
@@ -288,11 +287,11 @@
               bind:value={labelInput}
               class="flex-grow px-3 py-2 border border-gray-300 rounded-l-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
               placeholder="Add a label"
-              on:keydown={e => e.key === 'Enter' && (e.preventDefault(), addLabel())}
+              onkeydown={e => e.key === 'Enter' && (e.preventDefault(), addLabel())}
             />
             <button
               type="button"
-              on:click={addLabel}
+              onclick={addLabel}
               class="px-4 py-2 bg-blue-500 text-white rounded-r-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
             >
               Add
@@ -309,7 +308,7 @@
                   <button
                     type="button"
                     class="ml-1 text-blue-500 hover:text-blue-700"
-                    on:click={() => removeLabel(label)}
+                    onclick={() => removeLabel(label)}
                     aria-label={`Remove ${label} label`}
                   >
                     &times;
@@ -331,7 +330,7 @@
         <div class="flex justify-end gap-2 pt-2">
           <button
             type="button"
-            on:click={close}
+            onclick={close}
             class="px-4 py-2 border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Cancel
