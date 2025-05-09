@@ -1,8 +1,27 @@
-import { writable, derived } from 'svelte/store';
+import { writable, derived, get } from 'svelte/store';
 import type { Task, NewTask, TaskStatus } from '$lib/types/task';
 
 // Create the main tasks store
 const tasksStore = writable<Task[]>([]);
+
+// Create a loading state store
+export const isLoading = writable<boolean>(false);
+
+// Create an error state store
+export const taskError = writable<string | null>(null);
+
+// Status count stores
+export const todoCount = derived(tasksStore, $tasks => 
+  $tasks.filter(task => task.status === 'todo').length
+);
+
+export const doingCount = derived(tasksStore, $tasks => 
+  $tasks.filter(task => task.status === 'doing').length
+);
+
+export const doneCount = derived(tasksStore, $tasks => 
+  $tasks.filter(task => task.status === 'done').length
+);
 
 // Create the task store with methods
 export const taskStore = {
@@ -11,23 +30,35 @@ export const taskStore = {
   // Initialize the store with tasks from the API
   init: async () => {
     try {
+      // Set loading state
+      isLoading.set(true);
+      taskError.set(null);
+      
       const response = await fetch('/api/tasks');
       if (!response.ok) {
-        throw new Error('Failed to fetch tasks');
+        throw new Error(`Failed to fetch tasks: ${response.statusText}`);
       }
+      
       const tasks = await response.json();
       tasksStore.set(tasks);
+      
       return tasks;
     } catch (error) {
       console.error('Error initializing task store:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
       tasksStore.set([]);
       return [];
+    } finally {
+      isLoading.set(false);
     }
   },
   
   // Add a new task
   addTask: async (newTask: NewTask) => {
     try {
+      isLoading.set(true);
+      taskError.set(null);
+      
       const response = await fetch('/api/tasks', {
         method: 'POST',
         headers: {
@@ -37,7 +68,7 @@ export const taskStore = {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to create task');
+        throw new Error(`Failed to create task: ${response.statusText}`);
       }
 
       const createdTask = await response.json();
@@ -48,13 +79,26 @@ export const taskStore = {
       return createdTask;
     } catch (error) {
       console.error('Error adding task:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
       throw error;
+    } finally {
+      isLoading.set(false);
     }
   },
   
   // Update an existing task
   updateTask: async (taskId: string, updatedFields: Partial<Task>) => {
     try {
+      taskError.set(null);
+      
+      // Get the current task before updating
+      const currentTasks = get(tasksStore);
+      const taskToUpdate = currentTasks.find(task => task.id === taskId);
+      
+      if (!taskToUpdate) {
+        throw new Error(`Task with ID ${taskId} not found`);
+      }
+      
       // First update locally for optimistic UI
       let updatedTask: Task | null = null;
       
@@ -91,7 +135,11 @@ export const taskStore = {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to update task');
+        // Revert to original state in case of error
+        tasksStore.update(tasks => 
+          tasks.map(task => task.id === taskId ? taskToUpdate : task)
+        );
+        throw new Error(`Failed to update task: ${response.statusText}`);
       }
 
       const serverTask = await response.json();
@@ -102,6 +150,7 @@ export const taskStore = {
       return serverTask;
     } catch (error) {
       console.error('Error updating task:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   },
@@ -109,6 +158,16 @@ export const taskStore = {
   // Delete a task
   deleteTask: async (taskId: string) => {
     try {
+      taskError.set(null);
+      
+      // Get the current task before deleting
+      const currentTasks = get(tasksStore);
+      const taskToDelete = currentTasks.find(task => task.id === taskId);
+      
+      if (!taskToDelete) {
+        throw new Error(`Task with ID ${taskId} not found`);
+      }
+      
       // First update locally for optimistic UI
       tasksStore.update(tasks => tasks.filter(task => task.id !== taskId));
       
@@ -118,12 +177,15 @@ export const taskStore = {
       });
 
       if (!response.ok) {
-        throw new Error('Failed to delete task');
+        // Revert deletion if server request fails
+        tasksStore.update(tasks => [...tasks, taskToDelete]);
+        throw new Error(`Failed to delete task: ${response.statusText}`);
       }
       
       return true;
     } catch (error) {
       console.error('Error deleting task:', error);
+      taskError.set(error instanceof Error ? error.message : 'Unknown error');
       throw error;
     }
   },
@@ -131,10 +193,21 @@ export const taskStore = {
   // Update task status (specialized method for drag and drop)
   updateTaskStatus: async (taskId: string, newStatus: TaskStatus) => {
     return taskStore.updateTask(taskId, { status: newStatus });
+  },
+  
+  // Get task by ID (synchronous helper method)
+  getTaskById: (taskId: string) => {
+    const tasks = get(tasksStore);
+    return tasks.find(task => task.id === taskId);
+  },
+  
+  // Clear all errors
+  clearError: () => {
+    taskError.set(null);
   }
 };
 
-// Derived stores for each column
+// Derived stores for each column with sorting
 export const todoTasks = derived(tasksStore, $tasks => 
   $tasks
     .filter(task => task.status === 'todo')
