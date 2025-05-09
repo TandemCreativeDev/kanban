@@ -38,6 +38,13 @@ npm run check
 
 ## Code Standards
 
+### Import Standards
+
+- Use 'node:' prefix for Node.js built-in modules (e.g., `import fs from 'node:fs'`)
+- Import types with the `type` keyword (e.g., `import type { Task } from '$lib/types/task'`)
+- Use the '$lib' alias for imports from the lib directory
+- Sort imports in a consistent order: external libraries first, then internal modules
+
 ### General Guidelines
 
 1. Use TypeScript for all new code
@@ -50,6 +57,9 @@ npm run check
 - Use proper typing for all variables, functions, and components
 - Prefer interfaces over types for object definitions
 - Export types and interfaces for reuse
+- Use `undefined` instead of `null` for optional values to match TypeScript's strict null checking
+- Always use explicit typing for complex objects, especially when creating new instances
+- Use type assertions (`as Type`) only when TypeScript cannot infer types correctly
 
 ```typescript
 // Example
@@ -101,6 +111,10 @@ interface Task {
 - Follow RESTful principles
 - Return appropriate HTTP status codes
 - Validate request data
+- Import RequestHandler directly from '@sveltejs/kit' rather than local type files
+- Use 'node:' prefix for Node.js built-in modules (e.g., 'node:fs', 'node:path')
+- Handle JSON parsing exceptions with try/catch blocks
+- Return consistent response formats for both success and error cases
 
 ### Git Workflow
 
