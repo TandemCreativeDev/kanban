@@ -1,1 +1,16 @@
-[]
+[
+  {
+    "id": "4e3474f7-7a68-4701-bdc8-a6a9e840e656",
+    "title": "Example Task",
+    "description": "This is an example task",
+    "status": "todo",
+    "labels": [
+      "feature",
+      "frontend"
+    ],
+    "assignee": "maxitect",
+    "estimatedCompletion": "2023-06-30T00:00:00.000Z",
+    "createdAt": "2025-05-09T09:47:13.554Z",
+    "updatedAt": "2025-05-09T09:47:37.789Z"
+  }
+]
