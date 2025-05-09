@@ -1,10 +1,9 @@
 /**
- * Format a date string to a human-readable format
+ * Format a date to a human-readable format
  */
-export function formatDate(dateString?: string): string {
-  if (!dateString) return 'N/A';
-  
-  const date = new Date(dateString);
+export function formatDate(date?: Date): string {
+  if (!date) return 'N/A';
+
   return new Intl.DateTimeFormat('en-US', {
     year: 'numeric',
     month: 'short',
@@ -15,15 +14,14 @@ export function formatDate(dateString?: string): string {
 /**
  * Check if a date is in the past
  */
-export function isPastDue(dateString?: string): boolean {
-  if (!dateString) return false;
-  
-  const date = new Date(dateString);
+export function isPastDue(date?: Date): boolean {
+  if (!date) return false;
+
   const now = new Date();
-  
+
   // Remove time part for comparison
   const dateWithoutTime = new Date(date.getFullYear(), date.getMonth(), date.getDate());
   const nowWithoutTime = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-  
+
   return dateWithoutTime < nowWithoutTime;
 }
