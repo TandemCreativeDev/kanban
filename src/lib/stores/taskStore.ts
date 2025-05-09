@@ -31,8 +31,19 @@ export const taskStore = {
       taskError.set(null);
 
       const tasks = await taskApiService.fetchAllTasks();
-      tasksStore.set(tasks);
 
+      // Ensure date fields are properly converted to Date objects
+      const processedTasks = tasks.map(task => ({
+        ...task,
+        estimatedCompletion: task.estimatedCompletion
+          ? new Date(task.estimatedCompletion)
+          : undefined,
+        completedAt: task.completedAt ? new Date(task.completedAt) : undefined,
+        createdAt: task.createdAt ? new Date(task.createdAt) : new Date(),
+        updatedAt: task.updatedAt ? new Date(task.updatedAt) : new Date()
+      }));
+
+      tasksStore.set(processedTasks);
       return tasks;
     } catch (error) {
       console.error('Error initializing task store:', error);
@@ -159,4 +170,3 @@ export const taskStore = {
     taskError.set(null);
   }
 };
-
