@@ -22,7 +22,7 @@
   });
 </script>
 
-<div class="h-full w-full p-4 bg-gray-100">
+<div class="h-full w-full p-6 bg-gray-100">
   <header class="mb-6">
     <h1 class="text-3xl font-bold text-gray-800">Kanban Board</h1>
   </header>
