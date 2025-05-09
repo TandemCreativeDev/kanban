@@ -139,6 +139,19 @@ interface Task {
 - Write descriptive commit messages
 - Review code before merging
 
+## Code Review Process
+
+When reviewing code:
+1. **ALWAYS run linter and TypeScript checks first**:
+   ```bash
+   npm run lint
+   npm run check
+   ```
+2. Report any errors or warnings found by these tools
+3. Only then proceed with manual code review
+4. Pay special attention to type compatibility issues
+5. Verify interface implementations match their definitions
+
 ## Application Architecture
 
 ### Data Flow
