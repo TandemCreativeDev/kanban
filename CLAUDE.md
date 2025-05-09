@@ -44,6 +44,8 @@ npm run check
 - Import types with the `type` keyword (e.g., `import type { Task } from '$lib/types/task'`)
 - Use the '$lib' alias for imports from the lib directory
 - Sort imports in a consistent order: external libraries first, then internal modules
+- Group imports by category with a blank line between groups
+- Prefer named imports over default imports when multiple items are needed from a module
 
 ### General Guidelines
 
@@ -51,6 +53,11 @@ npm run check
 2. Follow the existing component structure and naming conventions
 3. Keep components small and focused on a single responsibility
 4. Use Svelte's built-in reactivity whenever possible
+5. Extract reusable logic into utility functions
+6. Use consistent error handling patterns throughout the application
+7. Keep files organized in logical directories based on functionality
+8. Comment complex logic but prefer self-documenting code through clear naming
+9. Avoid duplicating code - create shared modules for common operations
 
 ### TypeScript
 
@@ -60,6 +67,10 @@ npm run check
 - Use `undefined` instead of `null` for optional values to match TypeScript's strict null checking
 - Always use explicit typing for complex objects, especially when creating new instances
 - Use type assertions (`as Type`) only when TypeScript cannot infer types correctly
+- Create utility types for common patterns (e.g., Omit<T, K>, Pick<T, K>)
+- Handle type conversion carefully, especially with dates and serialized data
+- Use Record<string, unknown> instead of any for objects with unknown structure
+- Run TypeScript checks frequently to ensure type safety throughout development
 
 ```typescript
 // Example
@@ -115,6 +126,11 @@ interface Task {
 - Use 'node:' prefix for Node.js built-in modules (e.g., 'node:fs', 'node:path')
 - Handle JSON parsing exceptions with try/catch blocks
 - Return consistent response formats for both success and error cases
+- Create helper functions for common operations like error responses
+- Centralize file path constants to avoid string duplication
+- Use utility functions to handle serialization/deserialization of complex types (like Date objects)
+- Apply the DRY (Don't Repeat Yourself) principle by extracting repeated logic into reusable functions
+- Implement thorough validation before performing operations on data
 
 ### Git Workflow
 
@@ -131,6 +147,26 @@ interface Task {
 2. Updates are made through SvelteKit API routes
 3. Svelte stores maintain the application state
 4. Components react to state changes
+
+### Code Organization
+
+1. **Utility Pattern**:
+   - Place reusable functions in dedicated utility files
+   - Group related utilities by domain (e.g., date handling, task operations)
+   - Keep utility functions pure when possible for easier testing
+
+2. **File Structure**:
+   - `/lib/types` - TypeScript interfaces and types
+   - `/lib/utils` - Utility functions
+   - `/lib/components` - Reusable UI components
+   - `/lib/stores` - Svelte stores
+   - `/routes/api` - API endpoints
+   - `/routes` - Page components
+
+3. **API Layer**:
+   - Centralize file operations in utility functions
+   - Use consistent error handling patterns
+   - Convert between in-memory and serialized representations
 
 ### Component Hierarchy
 
