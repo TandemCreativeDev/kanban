@@ -42,24 +42,34 @@
    - Created static/data/tasks.json for JSON storage
    - Added helper functions in taskFileUtils.ts for common file operations
 
+4. Implemented Task Store:
+   - Created taskStore.ts for reactive state management
+   - Implemented CRUD operations with API integration
+   - Added optimistic UI updates with error recovery
+   - Created derived stores for column-specific task lists (todoTasks, doingTasks, doneTasks)
+   - Added loading and error state management
+   - Implemented task counter stores for statistics
+   
+5. Implemented Utility Architecture:
+   - Created taskApiService.ts to centralize API calls
+   - Implemented taskTransform.ts for task object transformations
+   - Created storeFactory.ts for consistent store creation
+   - Enhanced file organization with separation of concerns
+   - Updated ARCHITECTURE.md to document new structure
+
 ## Next Steps
 
 The following items are still pending implementation:
 
 1. Frontend Components:
 
-   - Board.svelte - Main container component
-   - Column.svelte - Individual column component
-   - TaskCard.svelte - Individual task card component
+   - Column.svelte - Individual column component (started)
+   - TaskCard.svelte - Individual task card component (started)
    - TaskModal.svelte - Form for creating/editing tasks
    - ConfirmDialog.svelte - Confirmation dialog for deletions
    - Toast.svelte - Notification component
 
-2. Task Store:
-
-   - Implement Svelte store for task state management
-
-3. Page Components:
+2. Page Components:
    - Update +page.svelte to display Kanban board
    - Add data loading logic in +page.ts
 
@@ -70,13 +80,20 @@ kanban/
 ├── src/
 │   ├── lib/
 │   │   ├── components/
-│   │   │   └── Board.svelte        # Main board component
+│   │   │   ├── Board.svelte        # Main board component
+│   │   │   ├── Column.svelte       # Column component
+│   │   │   └── TaskCard.svelte     # Task card component
+│   │   ├── stores/
+│   │   │   └── taskStore.ts        # Task state management
 │   │   ├── types/
 │   │   │   └── task.ts             # Task interfaces
 │   │   └── utils/
 │   │       ├── dateFormat.ts       # Date formatting utilities
+│   │       ├── taskApiService.ts   # API service for task operations
 │   │       ├── taskFileUtils.ts    # Task file operations helpers
-│   │       └── taskSort.ts         # Task sorting utilities
+│   │       ├── taskSort.ts         # Task sorting utilities
+│   │       ├── taskTransform.ts    # Task transformation utilities
+│   │       └── storeFactory.ts     # Store creation factories
 │   ├── routes/
 │   │   ├── +page.svelte           # Main page (to be implemented)
 │   │   ├── +layout.svelte         # Layout wrapper
@@ -89,9 +106,9 @@ kanban/
 ├── static/
 │   └── data/
 │       └── tasks.json             # JSON file for task storage
-├── ARCHITECTURE.md            # Architectural specification
+├── ARCHITECTURE.md                # Architectural specification
 ├── CLAUDE.md                      # Development guidelines
-├── FUNCTIONAL.md              # Functional specification
+├── FUNCTIONAL.md                  # Functional specification
 ├── HISTORY_MAX.md                 # Project history and progress
 ├── .prettierrc                    # Prettier configuration
 ├── eslint.config.js               # ESLint configuration
@@ -104,8 +121,8 @@ kanban/
 For anyone continuing development, please refer to:
 
 1. CLAUDE.md for code standards and development guidelines
-2. ARCHITECTURE_MAX.md for the technical architecture
-3. FUNCTIONAL_MAX.md for the feature requirements
+2. ARCHITECTURE.md for the technical architecture
+3. FUNCTIONAL.md for the feature requirements
 
 ## Key Technical Decisions
 
@@ -121,9 +138,13 @@ For anyone continuing development, please refer to:
 5. **Code Organization**:
    - Utility functions extracted to reusable modules
    - Common operations (like file reading/writing) centralized in utility files
+   - Separation of concerns with dedicated utility files
 6. **Styling**: Tailwind CSS with minimal custom CSS
 7. **Form Validation**: Simple manual validation (no validation libraries)
-8. **Error Handling**: Toast notifications for user-facing errors
+8. **Error Handling**: 
+   - Toast notifications for user-facing errors
+   - Dedicated error store for tracking error states
+   - Error recovery with state rollback for failed API calls
 
 ## Latest Implementation Details
 
@@ -135,11 +156,22 @@ For anyone continuing development, please refer to:
    - PUT /api/tasks/[id] - Update a specific task
    - DELETE /api/tasks/[id] - Delete a specific task
 
-2. **Helper Functions**:
-   - Created taskFileUtils.ts with common file operations
-   - Implemented date conversion for proper serialization/deserialization
-   - Added error response standardization
+2. **Task Store Implementation**:
+   - taskStore with CRUD methods connected to API endpoints
+   - Optimistic UI updates with error recovery
+   - Reactive derived stores for filtered task lists
+   - Loading and error state management
+   - Counter stores for task statistics
 
-3. **Automatic Date Updates**:
+3. **Utility Architecture**:
+   - taskApiService.ts for API interaction
+   - taskTransform.ts for task object transformations
+   - storeFactory.ts for creating and configuring stores
+   - taskSort.ts for consistent task sorting
+   - dateFormat.ts for date display formatting
+   - taskFileUtils.ts for JSON file operations
+
+4. **Automatic Date Updates**:
    - completedAt automatically set when status changes to "done"
+   - completedAt automatically removed when task leaves "done" status
    - updatedAt automatically maintained on all updates

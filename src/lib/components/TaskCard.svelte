@@ -1,21 +1,19 @@
 <script lang="ts">
   import type { Task } from '$lib/types/task';
   import { formatDate, isPastDue } from '$lib/utils/dateFormat';
-  import { createEventDispatcher } from 'svelte';
   import { taskStore } from '$lib/stores/taskStore';
 
-  export let task: Task;
-
-  // Event dispatcher
-  const dispatch = createEventDispatcher<{
-    edit: void;
-    delete: void;
+  // Use $props() rune for all props in Svelte 5
+  let { task, onEdit, onDelete } = $props<{
+    task: Task;
+    onEdit?: (task: Task) => void;
+    onDelete?: (task: Task) => void;
   }>();
 
   // Handle edit button click
   function handleEdit(event: MouseEvent) {
     event.stopPropagation();
-    dispatch('edit');
+    if (onEdit) onEdit(task);
   }
 
   // Handle delete button click
@@ -23,7 +21,7 @@
     event.stopPropagation();
     if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
       taskStore.deleteTask(task.id);
-      dispatch('delete');
+      if (onDelete) onDelete(task);
     }
   }
 </script>
@@ -35,10 +33,9 @@
   <div class="flex justify-between items-start mb-2">
     <h3 class="font-medium text-gray-800">{task.title}</h3>
     <div class="flex items-center gap-1">
-      <div class="text-xs text-gray-500 mr-2">ID: {task.id}</div>
       <div class="hidden group-hover:flex">
         <button
-          on:click={handleEdit}
+          onclick={handleEdit}
           class="text-gray-400 hover:text-blue-500 p-1 rounded-full hover:bg-gray-100 transition-colors"
           title="Edit task"
           aria-label="Edit task"
@@ -53,7 +50,7 @@
           </svg>
         </button>
         <button
-          on:click={handleDelete}
+          onclick={handleDelete}
           class="text-gray-400 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 transition-colors"
           title="Delete task"
           aria-label="Delete task"

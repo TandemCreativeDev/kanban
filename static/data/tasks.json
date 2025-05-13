@@ -1,16 +1,89 @@
 [
   {
     "id": "4e3474f7-7a68-4701-bdc8-a6a9e840e656",
-    "title": "Example Task",
-    "description": "This is an example task",
+    "title": "Implement user authentication",
+    "description": "Add login and registration functionality to the application",
     "status": "todo",
+    "labels": [
+      "feature",
+      "backend"
+    ],
+    "assignee": "maxitect",
+    "estimatedCompletion": "2025-06-30T00:00:00.000Z",
+    "createdAt": "2023-05-01T09:00:00.000Z",
+    "updatedAt": "2025-05-09T14:49:11.649Z"
+  },
+  {
+    "id": "7f8d3a2b-5c6e-4b1d-9a8f-2e1c7d6b5a4d",
+    "title": "Design dashboard layout",
+    "description": "Create wireframes and mockups for the main dashboard",
+    "status": "doing",
+    "labels": [
+      "design",
+      "frontend"
+    ],
+    "assignee": "jackdesigner",
+    "estimatedCompletion": "2025-06-01T00:00:00.000Z",
+    "createdAt": "2023-05-02T10:15:00.000Z",
+    "updatedAt": "2025-05-09T14:47:43.641Z"
+  },
+  {
+    "id": "2a1b3c4d-5e6f-7g8h-9i0j-1k2l3m4n5o6p",
+    "title": "Implement drag-and-drop functionality",
+    "description": "Add the ability to drag tasks between columns",
+    "status": "done",
     "labels": [
       "feature",
       "frontend"
     ],
+    "assignee": "jackdesigner",
+    "estimatedCompletion": "2025-06-10T00:00:00.000Z",
+    "createdAt": "2023-05-03T11:30:00.000Z",
+    "updatedAt": "2025-05-09T14:49:28.015Z",
+    "completedAt": "2025-05-09T14:49:28.015Z"
+  },
+  {
+    "id": "9p8o7n6m-5l4k-3j2i-1h0g-f9e8d7c6b5a4",
+    "title": "Create API documentation",
+    "description": "Document all API endpoints with examples",
+    "status": "doing",
+    "labels": [
+      "documentation",
+      "backend"
+    ],
     "assignee": "maxitect",
-    "estimatedCompletion": "2023-06-30T00:00:00.000Z",
-    "createdAt": "2025-05-09T09:47:13.554Z",
-    "updatedAt": "2025-05-09T10:45:29.454Z"
+    "estimatedCompletion": "2025-06-02T00:00:00.000Z",
+    "createdAt": "2023-05-04T13:45:00.000Z",
+    "updatedAt": "2025-05-09T14:49:19.627Z"
+  },
+  {
+    "id": "5a4b3c2d-1e9f-8g7h-6i5j-4k3l2m1n0o9p",
+    "title": "Fix responsive layout issues",
+    "description": "Address UI problems on mobile devices",
+    "status": "todo",
+    "labels": [
+      "bug",
+      "frontend"
+    ],
+    "assignee": "jackdesigner",
+    "estimatedCompletion": "2025-05-25T00:00:00.000Z",
+    "completedAt": "2023-05-20T15:30:00.000Z",
+    "createdAt": "2023-05-15T09:20:00.000Z",
+    "updatedAt": "2025-05-09T14:47:27.763Z"
+  },
+  {
+    "id": "1z2y3x4w-5v6u-7t8s-9r0q-p1o2n3m4l5k",
+    "title": "Set up continuous integration",
+    "description": "Configure CI/CD pipeline for automated testing and deployment",
+    "status": "done",
+    "labels": [
+      "devops",
+      "infrastructure"
+    ],
+    "assignee": "maxitect",
+    "estimatedCompletion": "2025-05-18T00:00:00.000Z",
+    "completedAt": "2025-05-09T14:46:21.545Z",
+    "createdAt": "2023-05-10T11:00:00.000Z",
+    "updatedAt": "2025-05-09T14:46:21.545Z"
   }
 ]
