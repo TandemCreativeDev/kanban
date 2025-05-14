@@ -2,6 +2,7 @@
   import type { Task } from '$lib/types/task';
   import { formatDate, isPastDue } from '$lib/utils/dateFormat';
   import { taskStore } from '$lib/stores/taskStore';
+  import ConfirmDialog from './ConfirmDialog.svelte';
 
   // Use $props() rune for all props in Svelte 5
   let { task, onEdit, onDelete } = $props<{
@@ -10,19 +11,31 @@
     onDelete?: (task: Task) => void;
   }>();
 
+  // State for delete confirmation dialog
+  let showDeleteConfirm = $state(false);
+
   // Handle edit button click
   function handleEdit(event: MouseEvent) {
     event.stopPropagation();
     if (onEdit) onEdit(task);
   }
 
-  // Handle delete button click
+  // Handle delete button click - show confirmation dialog
   function handleDelete(event: MouseEvent) {
     event.stopPropagation();
-    if (confirm(`Are you sure you want to delete "${task.title}"?`)) {
-      taskStore.deleteTask(task.id);
-      if (onDelete) onDelete(task);
-    }
+    showDeleteConfirm = true;
+  }
+
+  // Handle confirm delete
+  function confirmDelete() {
+    taskStore.deleteTask(task.id);
+    if (onDelete) onDelete(task);
+    showDeleteConfirm = false;
+  }
+
+  // Handle cancel delete
+  function cancelDelete() {
+    showDeleteConfirm = false;
   }
 </script>
 
@@ -67,6 +80,17 @@
       </div>
     </div>
   </div>
+  
+  <!-- Delete confirmation dialog -->
+  <ConfirmDialog 
+    isOpen={showDeleteConfirm}
+    title="Confirm Deletion"
+    message={`Are you sure you want to delete "${task.title}"?`}
+    confirmText="Delete"
+    cancelText="Cancel"
+    onConfirm={confirmDelete}
+    onCancel={cancelDelete}
+  />
 
   {#if task.description}
     <p class="text-sm text-gray-600 mb-2">{task.description}</p>
